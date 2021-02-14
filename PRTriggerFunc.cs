@@ -37,7 +37,7 @@ namespace PRCommitStatusCheck
 
                 var gitHelper = new GitHelper(GenericHelper.GetConfig()["PAT"], orgName, projectName);
 
-                var prCommits = await gitHelper.FetchCommitsFromPullRequestAsync(orgName, prId);
+                var prCommits = await gitHelper.FetchCommitsFromPullRequestAsync(repositoryName, prId);
 
                 var pendingStatusUpdate = GenerateEventContent(PullRequestVerificationStatus.Pending,
                                                               "Waiting for commit message verification.");
