@@ -13,11 +13,11 @@
         }
     },
     "variables": {
-        "funcPlanName": "[concat(parameters('projectPrefix'), 'otafuncplan')]",
-        "appInsightsName": "[concat(parameters('projectPrefix'), 'otaappinsights')]",
-        "funcName": "[concat(parameters('projectPrefix'), 'dispfunc')]",
-        "funcStorageName": "[concat(parameters('projectPrefix'), 'dispfuncstor')]",
-        "sbNamespaceName": "[concat(parameters('projectPrefix'), 'dispfuncstor')]",
+        "funcPlanName": "[concat(parameters('projectPrefix'), 'funcplan')]",
+        "appInsightsName": "[concat(parameters('projectPrefix'), 'appinsights')]",
+        "funcName": "[concat(parameters('projectPrefix'), 'func')]",
+        "funcStorageName": "[concat(parameters('projectPrefix'), 'funcstor')]",
+        "sbNamespaceName": "[concat(parameters('projectPrefix'), 'nspace')]",
         "sbQueueName": "prevents",
         "sbNamespaceReceiverRoleDefId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')]",
         "kvName": "[concat(parameters('projectPrefix'), 'vault')]"
@@ -170,7 +170,68 @@
             ],
             "properties": {
                 "roleDefinitionId": "[variables('sbNamespaceReceiverRoleDefId')]",
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]"
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]",
+                "scope": "[resourceGroup().id]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('kvName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+            ],
+            "properties": {
+                "enableRbacAuthorization": false,
+                "enableSoftDelete": true,
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [],
+                "sku": {
+                    "name": "Standard",
+                    "family": "A"
+                },
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "bypass": "AzureServices"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2019-09-01",
+            "name": "[concat(variables('kvName'), '/PAT')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+            ],
+            "properties": {
+                "value": "[parameters('PAT')]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/accessPolicies",
+            "name": "[concat(variables('kvName'), '/add')]",
+            "apiVersion": "2019-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+            ],
+            "properties": {
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "secrets": [
+                                "list",
+                                "get"
+                            ]
+                        }
+                    }
+                ]
             }
         }
     ]
