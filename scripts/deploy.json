@@ -1,0 +1,237 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "projectPrefix": {
+            "type": "string",
+            "defaultValue": "contoso",
+            "minLength": 1
+        },
+        "PAT": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "variables": {
+        "funcPlanName": "[concat(parameters('projectPrefix'), 'otafuncplan')]",
+        "appInsightsName": "[concat(parameters('projectPrefix'), 'otaappinsights')]",
+        "funcName": "[concat(parameters('projectPrefix'), 'dispfunc')]",
+        "funcStorageName": "[concat(parameters('projectPrefix'), 'dispfuncstor')]",
+        "sbNamespaceName": "[concat(parameters('projectPrefix'), 'dispfuncstor')]",
+        "sbQueueName": "prevents",
+        "sbNamespaceReceiverRoleDefId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')]",
+        "kvName": "[concat(parameters('projectPrefix'), 'vault')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('funcStorageName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2",
+            "resources": [
+                {
+                    "type": "blobServices/containers",
+                    "apiVersion": "2019-06-01",
+                    "name": "[concat('default/', variables('funcStorageName'))]",
+                    "properties": {
+                        "publicAccess": "None"
+                    },
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageName'))]"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2020-02-02-preview",
+            "name": "[variables('appInsightsName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "[concat('hidden-link:', resourceId('Microsoft.Web/sites', variables('appInsightsName')))]": "Resource"
+            },
+            "properties": {
+                "ApplicationId": "[variables('appInsightsName')]",
+                "Request_Source": "IbizaWebAppExtensionCreate"
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('funcPlanName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic"
+            },
+            "properties": {
+                "name": "[variables('funcPlanName')]",
+                "computeMode": "Dynamic"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('funcName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "functionapp",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('funcPlanName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageName'))]",
+                "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
+            ],
+            "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcPlanName'))]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('funcStorageName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageName')), '2019-06-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('funcStorageName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageName')), '2019-06-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTSHARE",
+                            "value": "[toLower(variables('funcName'))]"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~3"
+                        },
+                        {
+                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2020-02-02-preview').InstrumentationKey]"
+                        },
+                        {
+                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                            "value": "dotnet"
+                        },
+                        {
+                            "name": "WEBSITE_RUN_FROM_PACKAGE",
+                            "value": "1"
+                        },
+                        {
+                            "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+                            "value": "1"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[variables('sbNamespaceName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {},
+            "resources": [
+                {
+                    "type": "Queues",
+                    "apiVersion": "2017-04-01",
+                    "name": "[variables('sbQueueName')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
+                    ],
+                    "properties": {
+                        "lockDuration": "PT5M",
+                        "maxSizeInMegabytes": 1024,
+                        "requiresDuplicateDetection": false,
+                        "requiresSession": false,
+                        "defaultMessageTimeToLive": "P10675199DT2H48M5.4775807S",
+                        "deadLetteringOnMessageExpiration": false,
+                        "duplicateDetectionHistoryTimeWindow": "PT10M",
+                        "maxDeliveryCount": 10,
+                        "autoDeleteOnIdle": "P10675199DT2H48M5.4775807S",
+                        "enablePartitioning": false,
+                        "enableExpress": false
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-04-01-preview",
+            "name": "[guid(resourceGroup().id)]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('funcName'))]",
+                "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('sbNamespaceReceiverRoleDefId')]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('kvName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+            ],
+            "properties": {
+                "enableRbacAuthorization": true,
+                "enableSoftDelete": true,
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [],
+                "sku": {
+                    "name": "Standard",
+                    "family": "A"
+                },
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "bypass": "AzureServices"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2019-09-01",
+            "name": "[concat(variables('kvName'), '/PAT')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+            ],
+            "properties": {
+                "value": "[parameters('PAT')]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/accessPolicies",
+            "name": "[concat(variables('kvName'), '/add')]",
+            "apiVersion": "2019-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+            ],
+            "properties": {
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "secrets": [
+                                "list",
+                                "get"
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
