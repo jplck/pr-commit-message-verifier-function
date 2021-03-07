@@ -85,7 +85,8 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('funcPlanName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageName'))]",
-                "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
+                "[resourceId('microsoft.insights/components', variables('appInsightsName'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
             ],
             "properties": {
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcPlanName'))]",
@@ -122,6 +123,10 @@
                         {
                             "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
                             "value": "1"
+                        },
+                        {
+                            "name": "PAT",
+                            "value": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('kvName'), 'PAT')).secretUriWithVersion, ')')]"
                         }
                     ]
                 }
@@ -179,9 +184,6 @@
             "apiVersion": "2019-09-01",
             "name": "[variables('kvName')]",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
-            ],
             "properties": {
                 "enableRbacAuthorization": false,
                 "enableSoftDelete": true,
@@ -217,7 +219,8 @@
             "name": "[concat(variables('kvName'), '/add')]",
             "apiVersion": "2019-09-01",
             "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
             ],
             "properties": {
                 "accessPolicies": [
@@ -226,7 +229,6 @@
                         "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]",
                         "permissions": {
                             "secrets": [
-                                "list",
                                 "get"
                             ]
                         }
