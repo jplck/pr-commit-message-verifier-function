@@ -1,0 +1,19 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: AzureResourceManagerTemplateDeployment@3
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'prdemoappsc'
+    subscriptionId: '$(subscriptionId)'
+    action: 'Create Or Update Resource Group'
+    resourceGroupName: '$(rgName)'
+    location: 'West Europe'
+    templateLocation: 'Linked artifact'
+    csmFile: 'scripts/deploy.json'
+    csmParametersFile: 'projectPrefix=$(projectPrefix) PAT=$(PAT)'
+    deploymentMode: 'Incremental'
