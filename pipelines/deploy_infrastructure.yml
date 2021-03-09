@@ -23,6 +23,6 @@ steps:
     resourceGroupName: '$(rgName)'
     location: 'West Europe'
     templateLocation: 'Linked artifact'
-    csmFile: '$(System.DefaultWorkingDirectory)/scripts/deploy.json'
+    csmFile: '../scripts/deploy.json'
     csmParametersFile: 'projectPrefix=$(projectPrefix) PAT=$(PAT)'
     deploymentMode: 'Incremental'
