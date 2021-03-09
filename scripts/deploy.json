@@ -127,6 +127,10 @@
                         {
                             "name": "PAT",
                             "value": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('kvName'), 'PAT')).secretUriWithVersion, ')')]"
+                        },
+                        {
+                            "name": "ServiceBusConnection",
+                            "value": "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/AuthorizationRules'),variables('sbNamespaceName'),'RootManageSharedAccessKey'),'2015-08-01').primaryConnectionString]"
                         }
                     ]
                 }
