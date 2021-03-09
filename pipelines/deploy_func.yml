@@ -11,7 +11,7 @@ variables:
   - name: 'vmImageName'
     value: 'vs2017-win2016'
   - name: 'workingDirectory'
-    value: '$(System.DefaultWorkingDirectory)/'
+    value: '$(System.DefaultWorkingDirectory)/src'
 
 stages:
 - stage: Build
