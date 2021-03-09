@@ -1,5 +1,7 @@
 # Azure DevOps Pull Request verfification with Azure Function
 
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjplck%2Fpr-commit-message-verifier-function%2Fmain%2Fscripts%2Fdeploy.json)
+
 ![PR Update Architecture](./docs/pr_update.png)
 
 ## Steps
