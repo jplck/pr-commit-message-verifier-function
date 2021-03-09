@@ -4,7 +4,12 @@
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/dotnet-core
 
 trigger:
-- main
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - src
 
 variables:
   - group: 'vars'
