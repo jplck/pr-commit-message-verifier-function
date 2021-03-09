@@ -14,15 +14,10 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: AzureResourceManagerTemplateDeployment@3
+- task: AzureCLI@2
   inputs:
-    deploymentScope: 'Resource Group'
-    azureResourceManagerConnection: 'prdemoappsc'
-    subscriptionId: '$(subscriptionId)'
-    action: 'Create Or Update Resource Group'
-    resourceGroupName: '$(rgName)'
-    location: 'West Europe'
-    templateLocation: 'URL of the file'
-    csmFile: 'scripts/deploy.json'
-    csmParametersFile: 'projectPrefix=$(projectPrefix) PAT=$(PAT)'
-    deploymentMode: 'Incremental'
+    azureSubscription: 'prdemoappsc'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: 'az deployment group create -g $(rgName) --template-file ./scripts/deploy.json --parameters projectPrefix=$(projectPrefix) PAT=$(PAT)'
+
