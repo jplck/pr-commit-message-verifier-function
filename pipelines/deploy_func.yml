@@ -13,6 +13,7 @@ trigger:
 
 variables:
   - group: 'vars'
+  - group: 'secret-vars'
   - name: 'vmImageName'
     value: 'vs2017-win2016'
   - name: 'workingDirectory'
