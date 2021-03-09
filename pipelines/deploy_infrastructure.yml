@@ -1,6 +1,10 @@
 trigger:
 - main
 
+variables:
+- group: 'vars'
+- group: 'secret-vars'
+
 pool:
   vmImage: ubuntu-latest
 
