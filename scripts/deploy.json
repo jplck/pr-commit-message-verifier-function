@@ -19,7 +19,6 @@
         "funcStorageName": "[concat(parameters('projectPrefix'), 'funcstor')]",
         "sbNamespaceName": "[concat(parameters('projectPrefix'), 'nspace')]",
         "sbQueueName": "prevents",
-        "sbNamespaceReceiverRoleDefId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')]",
         "kvName": "[concat(parameters('projectPrefix'), 'vault')]"
     },
     "resources": [
@@ -130,7 +129,7 @@
                         },
                         {
                             "name": "ServiceBusConnection",
-                            "value": "[concat('Endpoint=sb://', variables('sbNamespaceName'),'.servicebus.windows.net/;Authentication=Managed Identity')]"
+                            "value": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('kvName'), 'ServiceBusConnectionString')).secretUriWithVersion, ')')]"
                         }
                     ]
                 }
@@ -170,20 +169,6 @@
             ]
         },
         {
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2020-04-01-preview",
-            "name": "[guid(resourceGroup().id)]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('funcName'))]",
-                "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
-            ],
-            "properties": {
-                "roleDefinitionId": "[variables('sbNamespaceReceiverRoleDefId')]",
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('funcName')), '2019-08-01', 'full').identity.principalId]",
-                "scope": "[resourceGroup().id]"
-            }
-        },
-        {
             "type": "Microsoft.KeyVault/vaults",
             "apiVersion": "2019-09-01",
             "name": "[variables('kvName')]",
@@ -216,6 +201,18 @@
             ],
             "properties": {
                 "value": "[parameters('PAT')]"
+            }
+        },
+                {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2019-09-01",
+            "name": "[concat(variables('kvName'), '/ServiceBusConnectionString')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]"
+            ],
+            "properties": {
+                "value": "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/AuthorizationRules'),variables('sbNamespaceName'),'RootManageSharedAccessKey'),'2015-08-01').primaryConnectionString]"
             }
         },
         {
