@@ -1,5 +1,5 @@
 ﻿{
-  "id": "2ab4e3d3-b7a6-425e-92b1-5a9982c1269e",
+  "id": "2ab4e3d3-b7a6-425e-92b1-5a9982c1269e_",
   "eventType": "git.pullrequest.created",
   "publisherId": "tfs",
   "scope": "all",
